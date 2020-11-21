@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guangke.forum.mapper.CommentMapper">
+
+    <sql id="selectFields">
+        id,user_id,entity_type,entity_id,status,create_time,content,target_id
+    </sql>
+
+    <sql id="insertFields">
+        user_id,entity_type,entity_id,status,create_time,content,target_id
+    </sql>
+
+    <select id="selectCommentByEntity" resultType="Comment">
+        select <include refid="selectFields"></include>
+        from comment
+        where status = 0
+        and entity_type = #{entityType}
+        and entity_id = #{entityId}
+        order by create_time asc
+        limit #{offset},#{limit}
+
+    </select>
+
+    <select id="selectCommentCountByEntity" resultType="int" >
+        select count(id)
+        from comment
+        where status = 0
+        and entity_type = #{entityType}
+        and entity_id = #{entityId}
+    </select>
+
+<!--    当参数是实体类而不是基本类型时，需要用parameterType属性-->
+    <insert id="insertComment" parameterType="Comment">
+        insert into comment(<include refid="insertFields"></include>) values(
+            #{userId},#{entityType},#{entityId},#{status},#{createTime},#{content},#{targetId}
+        )
+    </insert>
+
+    <select id="selectCommentById" resultType="Comment">
+        select <include refid="selectFields"></include> from comment
+        where id = #{id}
+    </select>
+</mapper>

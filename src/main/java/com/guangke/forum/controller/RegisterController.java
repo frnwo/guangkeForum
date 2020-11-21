@@ -5,11 +5,14 @@ import com.guangke.forum.pojo.User;
 import com.guangke.forum.service.UserService;
 import com.guangke.forum.util.ActivationStatus;
 import com.guangke.forum.util.ForumConstants;
+import com.guangke.forum.util.ForumUtils;
+import com.guangke.forum.util.RedisKeyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -23,15 +26,19 @@ import javax.servlet.http.HttpSession;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Controller
 public class RegisterController implements ForumConstants {
     private static final Logger logger = LoggerFactory.getLogger(RegisterController.class);
     @Autowired
-    UserService userService;
+    private UserService userService;
 
     @Autowired
-    Producer kaptchaProducer;
+    private Producer kaptchaProducer;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Value("${server.servlet.context-path}")
     private String context;
@@ -80,9 +87,25 @@ public class RegisterController implements ForumConstants {
         return "/site/operate-result";
     }
     @GetMapping("/kaptcha")
-    public void getKaptcha(HttpServletResponse response, HttpSession session){
+    public void getKaptcha(HttpServletResponse response/*, HttpSession session*/){
         String text = kaptchaProducer.createText();
-        session.setAttribute("kaptcha",text);
+        /**
+         * 生成随机值来标识验证码值，
+         * 将该随机值和验证码组成key-value存到redis
+         * 将该随机值放入cookie发给浏览器。登录请求中的cookie带有该随机值,通过该key找到的value不为null说明验证码正确
+         *
+         * */
+        //随机值
+        String owner = ForumUtils.generateUUID();
+        //验证码 key
+        String kaptchaKey = RedisKeyUtils.getKaptchaKey(owner);
+        redisTemplate.opsForValue().set(kaptchaKey,text,60, TimeUnit.SECONDS);
+        //带有该key的cookie发给浏览器
+        Cookie cookie = new Cookie("kaptchaKey",owner);
+        cookie.setMaxAge(60);
+        cookie.setPath(context);
+        response.addCookie(cookie);
+//        session.setAttribute("kaptcha",text);
         BufferedImage image = kaptchaProducer.createImage(text);
         response.setContentType("image/png");
         try {
@@ -92,15 +115,25 @@ public class RegisterController implements ForumConstants {
         }
     }
     @PostMapping("/login")
-    public String login(String username,String password,String code,HttpSession session,HttpServletResponse response,Model model,boolean rememberme){
+    public String login(String username,String password,String code,/*HttpSession session,*/HttpServletResponse response,
+                        Model model,boolean rememberme,@CookieValue("kaptchaKey") String owner){
+
+//        String kaptcha = (String)session.getAttribute("kaptcha");
         //检查验证码
-        String kaptcha = (String)session.getAttribute("kaptcha");
+        String kaptcha = null;
+        //如果请求cookie中有kaptchaKey,则从redis获取验证码
+        if(StringUtils.isNotBlank(owner)){
+            String kaptchaKey = RedisKeyUtils.getKaptchaKey(owner);
+            kaptcha = (String) redisTemplate.opsForValue().get(kaptchaKey);
+        }
+
         if(StringUtils.isBlank(kaptcha) || StringUtils.isBlank(code) || !code.equalsIgnoreCase(kaptcha)){
             model.addAttribute("code","验证码不正确");
             return "/site/login";
         }
         int ticketSeconds = rememberme ? REMEMBER_EXPIRED_SECONDS : DEFAULT_EXPIRED_SECONDS;
         Map<String,Object> map = userService.login(username,password,ticketSeconds);
+        //如果map中没有ticket键，则登录出了问题
         if(!map.containsKey("ticket")){
             model.addAttribute("usernameMsg",map.get("usernameMsg"));
             model.addAttribute("passwordMsg",map.get("passwordMsg"));
@@ -109,7 +142,6 @@ public class RegisterController implements ForumConstants {
             Cookie cookie = new Cookie("ticket", (String) map.get("ticket"));
             cookie.setMaxAge(ticketSeconds);
             cookie.setPath(context);
-            logger.info(context);
             response.addCookie(cookie);
             //重定向
             return "redirect:/index";
@@ -121,4 +153,5 @@ public class RegisterController implements ForumConstants {
         //login有两个 重定向默认跳转方式为get
         return "redirect:/login";
     }
+
 }

@@ -19,7 +19,7 @@ public class Page {
     }
 
     public void setCurrent(int current) {
-        if(current > 1){
+        if(current > 1 ){
             this.current = current;
         }
     }
@@ -60,6 +60,7 @@ public class Page {
     //index首页由此获取开始页码
     public int getFrom(){
         int from = current-2;
+
         if(from>1 && from <= getTotal()){
             return from;
         }else if(from > getTotal()){
@@ -67,6 +68,7 @@ public class Page {
         }else {
             return 1;
         }
+
     }
     //index首页由此获取结束页码
     public int getTo(){

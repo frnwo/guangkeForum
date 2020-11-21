@@ -2,10 +2,7 @@ package com.guangke.forum.controller;
 
 import com.guangke.forum.util.ForumUtils;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
@@ -53,5 +50,11 @@ public class AlphaController {
         System.out.println(session.getAttribute("id"));
         System.out.println(session.getAttribute("name"));
         return "get session";
+    }
+    @PostMapping("/ajax")
+    @ResponseBody
+    public String testJSON(String name,int age){
+        System.out.println(name+"--"+age);
+        return ForumUtils.getJSONString(0,"操作成功");
     }
 }

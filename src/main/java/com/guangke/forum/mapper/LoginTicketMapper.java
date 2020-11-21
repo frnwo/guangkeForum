@@ -4,6 +4,7 @@ import com.guangke.forum.pojo.LoginTicket;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
+@Deprecated
 public interface LoginTicketMapper {
     //注意不要把{ 和( 写反啊！！！
     @Insert({

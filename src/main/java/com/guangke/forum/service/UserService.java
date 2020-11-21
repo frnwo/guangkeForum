@@ -7,9 +7,11 @@ import com.guangke.forum.pojo.User;
 import com.guangke.forum.util.ActivationStatus;
 import com.guangke.forum.util.ForumUtils;
 import com.guangke.forum.util.MailClient;
+import com.guangke.forum.util.RedisKeyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -17,6 +19,7 @@ import org.thymeleaf.context.Context;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 @Service
 public class UserService {
@@ -34,11 +37,19 @@ public class UserService {
 
     @Value("${forum.path.domain}")
     private String domain;
+//    @Autowired
+//    private LoginTicketMapper loginTicketMapper;
+
     @Autowired
-    private LoginTicketMapper loginTicketMapper;
+    RedisTemplate redisTemplate;
 
     public User findUserById(int id){
-        return userMapper.selectById(id);
+//        return userMapper.selectById(id);
+        User user = getCache(id);
+        if(user == null){
+            user = init(id);
+        }
+        return user;
     }
     public Map<String,Object> register(User user){
         Map<String,Object> map = new HashMap<>();
@@ -76,7 +87,8 @@ public class UserService {
         user.setSalt(ForumUtils.generateUUID().substring(0,5));
         user.setPassword(ForumUtils.md5(user.getPassword()+user.getSalt()));
         user.setActivationCode(ForumUtils.generateUUID());
-        user.setHeaderUrl("https://source.unsplash.com/random");
+        String headerUrl = String.format("http://images.nowcoder.com/head/%dt.png",new Random().nextInt(1000));
+        user.setHeaderUrl(headerUrl);
         userMapper.insertUser(user);
 
         return map;
@@ -98,6 +110,7 @@ public class UserService {
             return ActivationStatus.ACTIVATION_REPEAT;
         }else if(u.getActivationCode().equals(activationCode)){
             userMapper.updateStatus(userId,1);
+            clearCache(userId);
             return ActivationStatus.ACTIVATION_SUCCESS;
         }else {
             //可能是防止激活没有这个id的用户或者无效激活码
@@ -134,11 +147,53 @@ public class UserService {
         loginTicket.setStatus(0);
         loginTicket.setExpired(new Date(System.currentTimeMillis()+ ticketSeconds * 1000));
         loginTicket.setUserId(user.getId());
-        loginTicketMapper.insertLoginTicket(loginTicket);
+//        loginTicketMapper.insertLoginTicket(loginTicket);
+        String ticketKey = RedisKeyUtils.getLoginTicketKey(loginTicket.getTicket());
+        redisTemplate.opsForValue().set(ticketKey,loginTicket);
         map.put("ticket",loginTicket.getTicket());
         return map;
     }
     public void logOut(String ticket){
-        loginTicketMapper.updateLoginTicket(ticket,1);
+//        loginTicketMapper.updateLoginTicket(ticket,1);
+        String ticketKey = RedisKeyUtils.getLoginTicketKey(ticket);
+        LoginTicket loginTicket = (LoginTicket) redisTemplate.opsForValue().get(ticketKey);
+        //1 无效
+        loginTicket.setStatus(1);
+        redisTemplate.opsForValue().set(ticketKey,loginTicket);
+
+    }
+    public LoginTicket findLoginTicket(String ticket){
+        String ticketKey = RedisKeyUtils.getLoginTicketKey(ticket);
+        return (LoginTicket) redisTemplate.opsForValue().get(ticketKey);
+    }
+    public int updateHeaderUrl(int userId,String headerUrl){
+        int rows = userMapper.updateHeader(userId,headerUrl);
+        clearCache(userId);
+        return rows;
+    }
+    public int  updatePassword(int userId,String newPassword){
+        int rows = userMapper.updatePassword(userId,newPassword);
+        clearCache(userId);
+        return rows;
+    }
+    public User findUserByName(String username){
+        return userMapper.selectByUsername(username);
+    }
+    //1.优先从缓存中取user信息
+    private User getCache(int userId){
+        String userKey = RedisKeyUtils.getUserKey(userId);
+        return (User)redisTemplate.opsForValue().get(userKey);
+    }
+    //2.缓存没有时再从数据库查，并将初始化到redis
+    private User init(int userId){
+        User user = userMapper.selectById(userId);
+        String userKey = RedisKeyUtils.getUserKey(userId);
+        redisTemplate.opsForValue().set(userKey,user);
+        return user;
+    }
+    //3.当用户信息修改时，清空缓存
+    private void clearCache(int userId){
+        String userKey = RedisKeyUtils.getUserKey(userId);
+        redisTemplate.delete(userKey);
     }
 }

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>json</title>
+</head>
+<body>
+<p>
+    <input type="button" value="发送" onclick="send();"/>
+</p>
+<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+<script>
+    function send() {
+        $.post(
+            "/forum/alpha/ajax",
+            {"name":"zjh","age":23},
+            function (data) {
+                console.log(typeof (data));
+                console.log("data:"+data)
+                data = $.parseJSON(data);
+                console.log(typeof (data));
+                console.log(data.code+"-"+data.msg)
+            }
+        );
+    }
+</script>
+</body>
+</html>

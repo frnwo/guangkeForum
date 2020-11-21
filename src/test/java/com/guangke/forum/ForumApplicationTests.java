@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
 
 @SpringBootTest
 class ForumApplicationTests {
@@ -14,10 +17,7 @@ class ForumApplicationTests {
     UserMapper userMapper;
     @Test
     void contextLoads() {
-        User user = userMapper.selectById(101);
-        System.out.println(user);
-        user = userMapper.selectByUsername("liubei");
-        System.out.println(user);
+
     }
 
 }
