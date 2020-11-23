@@ -4,25 +4,21 @@ import com.guangke.forum.mapper.LoginTicketMapper;
 import com.guangke.forum.mapper.UserMapper;
 import com.guangke.forum.pojo.LoginTicket;
 import com.guangke.forum.pojo.User;
-import com.guangke.forum.util.ActivationStatus;
-import com.guangke.forum.util.ForumUtils;
-import com.guangke.forum.util.MailClient;
-import com.guangke.forum.util.RedisKeyUtils;
+import com.guangke.forum.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+
+import java.util.*;
 
 @Service
-public class UserService {
+public class UserService implements ForumConstants {
     @Autowired
     private UserMapper userMapper;
 
@@ -195,5 +191,27 @@ public class UserService {
     private void clearCache(int userId){
         String userKey = RedisKeyUtils.getUserKey(userId);
         redisTemplate.delete(userKey);
+    }
+    //获取用户权限
+    public List<? extends GrantedAuthority> getAuthorities(int userId){
+        User user = this.findUserById(userId);
+        List<GrantedAuthority> list = new ArrayList<>();
+
+        list.add(new GrantedAuthority() {
+            @Override
+            public String getAuthority() {
+                switch (user.getType()){
+                    case 1:
+                        return AUTHORITY_ADMIN;
+                    case 2:
+                        return AUTHORITY_MODERATOR;
+                    default:
+                        return AUTHORITY_USER;
+                }
+            }
+        });
+
+        return list;
+
     }
 }

@@ -1,3 +1,10 @@
+//发送ajax请求之前，给请求消息头添加token
+var header = $("meta[name='_csrf_header']").attr('content');
+var token = $("meta[name='_csrf']").attr('content');
+$(document).ajaxSend(function (e,xhr,options) {
+		xhr.setRequestHeader(header,token);
+});
+
 var CONTEXT_PATH="/forum"
 window.alert = function(message) {
 	if(!$(".alert-box").length) {

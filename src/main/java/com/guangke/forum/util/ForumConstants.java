@@ -42,8 +42,36 @@ public interface ForumConstants {
     String TOPIC_FOLLOW = "follow";
 
     /**
+     * 主题：发帖
+     */
+    String TOPIC_PUBLISH = "publish";
+
+    /**
+     * 主题：删帖
+     */
+    String TOPIC_DELETE = "delete";
+
+    /**
      * 系统用户
      */
     int SYSTEM_USER = 1;
+
+    /**
+     * 权限 :普通用户，管理员，版主
+     */
+    String AUTHORITY_USER = "user";
+    String AUTHORITY_ADMIN = "admin";
+    String AUTHORITY_MODERATOR = "moderator";
+
+    /**
+     * 帖子type：0：普通 1：置顶
+     */
+    int TYPE_TOP = 1;
+
+    /**
+     * 帖子status : 0:正常 1：加精 2：删除
+     */
+    int  STATUS_WONDERFUL = 1;
+    int  STATUS_DELETE = 2;
 
 }

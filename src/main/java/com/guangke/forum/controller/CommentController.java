@@ -58,21 +58,29 @@ public class CommentController implements ForumConstants {
                     .setEntityType(comment.getEntityType())
                     .setEntityId(comment.getEntityId())
                     .setUserId(hostHolder.get().getId())
-                    .setData("postId", postId); //评论通知需要跳转到相应的post
-
-            //评论是针对帖子或者评论的，所属者userId要根据entityType类型来查询
-//            if (comment.getEntityType() == ENTITY_TYPE_DISCUSSPOST) {
-//                //根据帖子id找出帖子，得到userId
-//                DiscussPost post = discussPostService.findDiscussPostById(comment.getEntityId());
-//                event.setEntityUserId(post.getUserId());
-//            } else if (comment.getEntityType() == ENTITY_TYPE_COMMENT) {
-//                Comment comment1 = commentService.findCommentById(comment.getEntityId());
-//                event.setEntityUserId(comment1.getUserId());
-//            }
-            event.setEntityUserId(entityUserId);
+                    //评论通知需要跳转到相应的post
+                    .setData("postId", postId)
+                    .setEntityUserId(entityUserId);
 
             producer.fireEvent(TOPIC_COMMENT, event);
         }
+
+        /**
+         *  增加评论后，帖子的回复数量发生改变，es服务器的帖子也需要更新
+         *  如果评论针对的实体类型(entityType)是帖子，则触发事件
+         *  消费者线程将更新的帖子保存到es服务器
+         */
+        if(comment.getEntityType() == ENTITY_TYPE_DISCUSSPOST){
+            Event event = new Event()
+                    .setTopic(TOPIC_PUBLISH)
+                    .setUserId(comment.getUserId())
+                    .setEntityType(ENTITY_TYPE_DISCUSSPOST)
+                    .setEntityId(postId);
+
+            producer.fireEvent(TOPIC_PUBLISH,event);
+
+        }
+
         return "redirect:/discuss/detail/"+postId;
     }
 

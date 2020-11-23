@@ -7,6 +7,10 @@ import com.guangke.forum.service.UserService;
 import com.guangke.forum.util.CookieUtils;
 import com.guangke.forum.util.HostHolder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -34,12 +38,25 @@ public class LoginTicketInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        //从cookie中查询ticket
         Cookie cookie = CookieUtils.getCookie(request,"ticket");
+
         if(cookie!=null){
+            //从redis中查询凭证
             LoginTicket loginTicket = userService.findLoginTicket(cookie.getValue());
+            //检测凭证是否有效
             if(loginTicket!=null && loginTicket.getStatus()==0 && loginTicket.getExpired().after(new Date())){
+                //查询用户
                 User user = userService.findUserById(loginTicket.getUserId());
+                //在请求中持有用户
                 hostHolder.set(user);
+
+                /**因为跳过了security的认证方案，采用了自定义的认证，因此securityContext没有认证结果
+                *   而security的权限控制需要认证的结果，需要自己手动添加
+                 **/
+                Authentication authentication = new UsernamePasswordAuthenticationToken(user,user.getPassword(),userService.getAuthorities(user.getId()));
+                SecurityContextHolder.setContext(new SecurityContextImpl(authentication));
+
             }
         }
         return true;
@@ -62,5 +79,8 @@ public class LoginTicketInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         hostHolder.clear();
+        //请求结束时，也要清除掉认证信息
+        SecurityContextHolder.clearContext();
+
     }
 }

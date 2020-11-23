@@ -40,6 +40,10 @@ spring:
       enable-auto-commit: true
       group-id: forum-comsumer-group
       auto-commit-interval: 3000
+  data:
+    elasticsearch:
+      cluster-name: guangke
+      cluster-nodes: localhost:9300
 mybatis:
   configuration:
     map-underscore-to-camel-case: true

@@ -1,10 +1,7 @@
 package com.guangke.forum.controller;
 
-import com.guangke.forum.mapper.CommentMapper;
-import com.guangke.forum.pojo.Comment;
-import com.guangke.forum.pojo.DiscussPost;
-import com.guangke.forum.pojo.Page;
-import com.guangke.forum.pojo.User;
+import com.guangke.forum.event.EventProducer;
+import com.guangke.forum.pojo.*;
 import com.guangke.forum.service.CommentService;
 import com.guangke.forum.service.DiscussPostService;
 import com.guangke.forum.service.LikeService;
@@ -38,6 +35,9 @@ public class DiscussPostController implements ForumConstants {
     @Autowired
     LikeService likeService;
 
+    @Autowired
+    private EventProducer eventProducer;
+
     @PostMapping("/add")
     @ResponseBody
     public String addDiscussPost(DiscussPost discussPost){
@@ -49,6 +49,17 @@ public class DiscussPostController implements ForumConstants {
         discussPost.setCreateTime(new Date());
         discussPost.setUserId(user.getId());
         discussPostService.addDiscussPost(discussPost);
+
+        //触发发帖，消费者线程将帖子保存到es服务器
+        Event event = new Event()
+                .setTopic(TOPIC_PUBLISH)
+                //搜索帖子时需要显示作者
+                .setUserId(user.getId())
+                .setEntityType(ENTITY_TYPE_DISCUSSPOST)
+                .setEntityId(discussPost.getId());
+
+        eventProducer.fireEvent(TOPIC_PUBLISH,event);
+
         //code为0,成功
         return ForumUtils.getJSONString(0,"发布成功");
     }
@@ -93,7 +104,7 @@ public class DiscussPostController implements ForumConstants {
             cvoMap.put("likeCount",likeCount);
 
             //当前用户对该评论的点赞状态
-            likeStatus = likeService.findLikeStatus(hostHolder.get().getId(),ENTITY_TYPE_COMMENT,comment.getId());
+            likeStatus = hostHolder.get()==null ? 0 : likeService.findLikeStatus(hostHolder.get().getId(),ENTITY_TYPE_COMMENT,comment.getId());
             cvoMap.put("likeStatus",likeStatus);
 
             /**
@@ -119,7 +130,7 @@ public class DiscussPostController implements ForumConstants {
                 rvoMap.put("likeCount",likeCount);
 
                 //当前用户对该回复的点赞状态
-                likeStatus = likeService.findLikeStatus(hostHolder.get().getId(),ENTITY_TYPE_COMMENT,comment.getId());
+                likeStatus = hostHolder.get()==null? 0 : likeService.findLikeStatus(hostHolder.get().getId(),ENTITY_TYPE_COMMENT,comment.getId());
                 rvoMap.put("likeStatus",likeStatus);
                 rvoList.add(rvoMap);
             }
@@ -131,4 +142,55 @@ public class DiscussPostController implements ForumConstants {
         model.addAttribute("comments",cvoList);
         return "/site/discuss-detail";
     }
+
+    //帖子置顶
+    @PostMapping("/top")
+    @ResponseBody
+    public String  setTop(int postId){
+        discussPostService.updateType(postId,TYPE_TOP);
+        //触发发帖，更新es
+        Event event = new Event()
+                .setTopic(TOPIC_PUBLISH)
+                //搜索帖子时需要显示作者
+                .setUserId(hostHolder.get().getId())
+                .setEntityType(ENTITY_TYPE_DISCUSSPOST)
+                .setEntityId(postId);
+        eventProducer.fireEvent(TOPIC_PUBLISH,event);
+
+        return ForumUtils.getJSONString(0);
+    }
+
+    //帖子加精
+    @PostMapping("/wonderful")
+    @ResponseBody
+    public String setWonderful(int postId){
+        discussPostService.updateStatus(postId,STATUS_WONDERFUL);
+        //触发发帖，更新es
+        Event event = new Event()
+                .setTopic(TOPIC_PUBLISH)
+                //搜索帖子时需要显示作者
+                .setUserId(hostHolder.get().getId())
+                .setEntityType(ENTITY_TYPE_DISCUSSPOST)
+                .setEntityId(postId);
+        eventProducer.fireEvent(TOPIC_PUBLISH,event);
+        return ForumUtils.getJSONString(0);
+    }
+
+    //帖子删除
+    @PostMapping("/delete")
+    @ResponseBody
+    public String setDelete(int postId){
+        discussPostService.updateStatus(postId,STATUS_DELETE);
+        //触发发帖，更新es
+        Event event = new Event()
+                .setTopic(TOPIC_DELETE)
+                //搜索帖子时需要显示作者
+                .setUserId(hostHolder.get().getId())
+                .setEntityType(ENTITY_TYPE_DISCUSSPOST)
+                .setEntityId(postId);
+        eventProducer.fireEvent(TOPIC_PUBLISH,event);
+        return ForumUtils.getJSONString(0);
+    }
+
+
 }

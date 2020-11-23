@@ -42,4 +42,16 @@ public class DiscussPostService {
     public int updateCommentCount(int postId,int count){
         return discussPostMapper.updateCommentCount(postId,count);
     }
+
+    //0:普通 1：置顶
+    public int updateType(int postId,int type){
+       return discussPostMapper.updateType(postId,type);
+    }
+
+    //0:正常 1：加精 2：删除
+    public int updateStatus(int postId,int status){
+        return discussPostMapper.updateStatus(postId,status);
+    }
+
+
 }

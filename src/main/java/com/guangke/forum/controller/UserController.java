@@ -180,5 +180,8 @@ public class UserController implements ForumConstants {
         model.addAttribute("hasFollowed",hasFollowed);
         return "/site/profile";
     }
-
+    @GetMapping(path = "/denied")
+    public String deniedPage(){
+        return "/error/404";
+    }
 }
