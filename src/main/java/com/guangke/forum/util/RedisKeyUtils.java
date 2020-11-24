@@ -28,6 +28,12 @@ public class RedisKeyUtils {
     //用户 key的前缀
     private static  final String PREFIX_USER = "user";
 
+    //uv
+    private static final String PREFIX_UV  = "uv";
+
+    //dau
+    private static final String PREFIX_DAU = "dau";
+
     //点赞的key: like:entity:entityType:entityId
     public static String getEntityLikeKey(int entityType,int entityId){
         return PREFIX_ENTITY_LIKE+SPLIT+entityType+SPLIT+entityId;
@@ -60,4 +66,25 @@ public class RedisKeyUtils {
     public static String getUserKey(int userId){
         return PREFIX_USER+SPLIT+userId;
     }
+
+    //uv 记录一天的不重复ip key格式 uv:yyyyMMdd
+    public static String getUvKey(String date){
+        return PREFIX_UV+SPLIT+date;
+    }
+
+    //区间uv
+    public static String getUvKey(String startDate,String endDate){
+        return PREFIX_UV+SPLIT+startDate+SPLIT+endDate;
+    }
+
+    //dau 记录一天的不重复用户id key格式: dau:yyyyMMdd
+    public static String getDauKey(String date){
+        return PREFIX_DAU+SPLIT+date;
+    }
+
+    //区间dau
+    public static String getDauKey(String startDate,String endDate){
+        return PREFIX_DAU+SPLIT+startDate+SPLIT+endDate;
+    }
+
 }

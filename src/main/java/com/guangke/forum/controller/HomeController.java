@@ -61,4 +61,8 @@ public class HomeController implements ForumConstants {
     public String getErrorPage(){
         return "/error/500";
     }
+    @GetMapping(path = "/denied")
+    public String deniedPage(){
+        return "/error/404";
+    }
 }

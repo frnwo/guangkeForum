@@ -43,7 +43,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter  implements For
                         "/discuss/top","/discuss/wonderful")
                 .hasAnyAuthority(AUTHORITY_MODERATOR)
                 .antMatchers(
-                        "/discuss/delete")
+                        "/discuss/delete","/data/**")
                 .hasAnyAuthority(AUTHORITY_ADMIN)
                 .anyRequest().permitAll();
                 //如果禁用了csrf，form表单不会生成token，当有权限时异步请求不会被认为是没有权限，正常访问
@@ -86,6 +86,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter  implements For
                         }
                     }
                 });
+
         /**  security 底层默认会拦截/logout退出请求，使用一个假的"/securitylogout"覆盖
          *  才能执行自定义的退出处理
          */
