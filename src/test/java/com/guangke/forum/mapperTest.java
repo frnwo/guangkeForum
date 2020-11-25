@@ -42,7 +42,7 @@ public class mapperTest {
     }
     @Test
     public void testSelectDiscussPost(){
-        List<DiscussPost> list = discussPostMapper.selectDiscussPost(149,0,10);
+        List<DiscussPost> list = discussPostMapper.selectDiscussPost(149,0,10,0);
           System.out.println(list);
         int c = discussPostMapper.selectDiscussPostRows(0);
         System.out.println(c);

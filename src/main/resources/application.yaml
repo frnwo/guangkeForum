@@ -14,8 +14,6 @@ spring:
       host: localhost
       port: 6379
       password:
-
-
   thymeleaf:
     cache: false
     encoding: UTF-8
@@ -44,6 +42,34 @@ spring:
     elasticsearch:
       cluster-name: guangke
       cluster-nodes: localhost:9300
+  task:
+    #Spring TaskExecution线程池
+    execution:
+      pool:
+        core-size: 5
+        max-size: 15
+        queue-capacity: 100
+    #Spring TaskScheduling线程池
+    scheduling:
+      pool:
+        size: 5
+  #不从内存读取任务，而是从数据库
+  quartz:
+    job-store-type: jdbc
+    scheduler-name: forumScheduler
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceId: AUTO
+          jobStore:
+            class: org.quartz.impl.jdbcjobstore.JobStoreTX
+            isClustered: true
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+        threadPool:
+          class: org.quartz.simpl.SimpleThreadPool
+          threadCount: 5
+
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
@@ -73,4 +99,7 @@ forum:
     #头像上传的本地路径
     uploadImage: d:/bisheWork/data/upload
 
-
+wk:
+  cmd: D:/soft/WKHTMLTOPDF/bin/wkhtmltoimage
+  images:
+    storage: D:/work/data/wk-images

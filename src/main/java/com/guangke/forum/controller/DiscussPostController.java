@@ -9,7 +9,9 @@ import com.guangke.forum.service.UserService;
 import com.guangke.forum.util.ForumConstants;
 import com.guangke.forum.util.ForumUtils;
 import com.guangke.forum.util.HostHolder;
+import com.guangke.forum.util.RedisKeyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +40,9 @@ public class DiscussPostController implements ForumConstants {
     @Autowired
     private EventProducer eventProducer;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @PostMapping("/add")
     @ResponseBody
     public String addDiscussPost(DiscussPost discussPost){
@@ -59,6 +64,10 @@ public class DiscussPostController implements ForumConstants {
                 .setEntityId(discussPost.getId());
 
         eventProducer.fireEvent(TOPIC_PUBLISH,event);
+
+        //将新帖加到redis的post:score ，由定时任务计算score
+        String redisKey = RedisKeyUtils.getPostScoreKey();
+        redisTemplate.opsForSet().add(redisKey,discussPost.getId());
 
         //code为0,成功
         return ForumUtils.getJSONString(0,"发布成功");
@@ -173,6 +182,11 @@ public class DiscussPostController implements ForumConstants {
                 .setEntityType(ENTITY_TYPE_DISCUSSPOST)
                 .setEntityId(postId);
         eventProducer.fireEvent(TOPIC_PUBLISH,event);
+
+        //对帖子加精
+        String redisKey = RedisKeyUtils.getPostScoreKey();
+        redisTemplate.opsForSet().add(redisKey,postId);
+
         return ForumUtils.getJSONString(0);
     }
 

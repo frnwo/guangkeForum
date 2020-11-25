@@ -9,7 +9,9 @@ import com.guangke.forum.service.DiscussPostService;
 import com.guangke.forum.service.UserService;
 import com.guangke.forum.util.ForumConstants;
 import com.guangke.forum.util.HostHolder;
+import com.guangke.forum.util.RedisKeyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +34,9 @@ public class CommentController implements ForumConstants {
 
     @Autowired
     EventProducer producer;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     //添加完评论之后，需要重定向到帖子详情，因此需要传进来一个帖子id
     @PostMapping("/add/{postId}")
@@ -78,6 +83,10 @@ public class CommentController implements ForumConstants {
                     .setEntityId(postId);
 
             producer.fireEvent(TOPIC_PUBLISH,event);
+
+            //对帖子评论也要更新帖子的分数
+            String redisKey = RedisKeyUtils.getPostScoreKey();
+            redisTemplate.opsForSet().add(redisKey,postId);
 
         }
 

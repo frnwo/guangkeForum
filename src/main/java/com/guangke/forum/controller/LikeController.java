@@ -7,7 +7,9 @@ import com.guangke.forum.service.LikeService;
 import com.guangke.forum.util.ForumConstants;
 import com.guangke.forum.util.ForumUtils;
 import com.guangke.forum.util.HostHolder;
+import com.guangke.forum.util.RedisKeyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -26,6 +28,9 @@ public class LikeController implements ForumConstants {
 
     @Autowired
     EventProducer eventProducer;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     //异步 点赞
     @PostMapping(path = "/like")
@@ -54,6 +59,13 @@ public class LikeController implements ForumConstants {
 
             eventProducer.fireEvent(TOPIC_LIKE,event);
         }
+        //对帖子点赞要更新帖子的分数
+        if(entityType == ENTITY_TYPE_DISCUSSPOST){
+            String redisKey = RedisKeyUtils.getPostScoreKey();
+            redisTemplate.opsForSet().add(redisKey,postId);
+        }
+
+
         return ForumUtils.getJSONString(0,null,map);
     }
 }

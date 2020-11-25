@@ -11,9 +11,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +35,11 @@ public class EventConsumer implements ForumConstants {
     @Autowired
     SearchService searchService;
 
+    @Value("${wk.cmd}")
+    private String wkCommand;
+
+    @Value("${wk.images.storage}")
+    private String wkStorage;
 
     @KafkaListener(topics = {TOPIC_COMMENT,TOPIC_FOLLOW,TOPIC_LIKE})
     public void handleCommentEvent(ConsumerRecord record){
@@ -108,6 +115,35 @@ public class EventConsumer implements ForumConstants {
         }
         //从es服务器删除帖子
         searchService.delete(event.getEntityId());
+
+    }
+
+    //消费分享event
+    @KafkaListener(topics = TOPIC_SHARE)
+    public void handleShareMessage(ConsumerRecord record){
+        if(record == null || record.value() == null){
+            logger.error("消息内容不能为空！");
+            return;
+        }
+
+        //record.value().toString()是一个json格式字符串，转换为指定的Event对象
+        Event event = JSONObject.parseObject(record.value().toString(),Event.class);
+
+        if(event == null){
+            logger.error("消息格式错误！");
+            return;
+        }
+        String htmlUrl = (String) event.getData().get("htmlUrl");
+        String fileName = (String) event.getData().get("fileName");
+        String suffix = (String) event.getData().get("suffix");
+
+        String cmd  = wkCommand + " --quality 75 "+ htmlUrl + " "+wkStorage+"/"+fileName+suffix;
+        try {
+            Runtime.getRuntime().exec(cmd);
+            logger.info("生成长图成功 "+cmd);
+        } catch (IOException e) {
+            logger.error("生成长图失败 "+e.getMessage());
+        }
 
     }
 }
