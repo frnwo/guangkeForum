@@ -29,7 +29,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter  implements For
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
                 .antMatchers(
-                "/user/profile/detail/**",
                 "/user/setting",
                 "/user/upload",
                 "/follow",
@@ -43,7 +42,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter  implements For
                         "/discuss/top","/discuss/wonderful")
                 .hasAnyAuthority(AUTHORITY_MODERATOR)
                 .antMatchers(
-                        "/discuss/delete","/data/**")
+                        "/discuss/delete","/data/**","/actuator/**")
                 .hasAnyAuthority(AUTHORITY_ADMIN)
                 .anyRequest().permitAll();
                 //如果禁用了csrf，form表单不会生成token，当有权限时异步请求不会被认为是没有权限，正常访问

@@ -38,6 +38,9 @@ public class WkController implements ForumConstants {
     @Value("${wk.images.storage}")
     private String wkImageStorage;
 
+    @Value("${qiniu.bucket.share.url}")
+    private String shareUrl;
+
     //将htmlUrl生成长图,返回长图的访问路径
     @GetMapping(path = "/share")
     @ResponseBody
@@ -48,17 +51,20 @@ public class WkController implements ForumConstants {
         Event event = new Event()
                 .setData("htmlUrl",htmlUrl)
                 .setData("fileName",fileName)
-                .setData("suffix",".png");
+                .setData("suffix","png");
 
         producer.fireEvent(TOPIC_SHARE,event);
 
         Map<String,Object> map = new HashMap<>();
-        map.put("shareUrl",domain+context+"/share/images/"+fileName);
+//        map.put("shareUrl",domain+context+"/share/images/"+fileName);
+        map.put("shareUrl",shareUrl+"/"+fileName);
+
         return ForumUtils.getJSONString(0,null,map);
     }
 
+    //废弃 改为从七牛云获取
     @GetMapping(path = "/share/images/{fileName}")
-    public void getMkImages(@PathVariable("fileName") String fileName, HttpServletResponse response){
+    public void getWkImages(@PathVariable("fileName") String fileName, HttpServletResponse response){
         if(StringUtils.isBlank(fileName)){
             throw new IllegalArgumentException("参数不能为空");
         }

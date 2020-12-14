@@ -5,7 +5,7 @@ $(document).ajaxSend(function (e,xhr,options) {
 		xhr.setRequestHeader(header,token);
 });
 
-var CONTEXT_PATH="/forum"
+var CONTEXT_PATH=""
 window.alert = function(message) {
 	if(!$(".alert-box").length) {
 		$("body").append(

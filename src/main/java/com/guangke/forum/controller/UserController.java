@@ -8,6 +8,8 @@ import com.guangke.forum.service.UserService;
 import com.guangke.forum.util.ForumConstants;
 import com.guangke.forum.util.ForumUtils;
 import com.guangke.forum.util.HostHolder;
+import com.qiniu.util.Auth;
+import com.qiniu.util.StringMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -52,12 +51,49 @@ public class UserController implements ForumConstants {
     @Autowired
     private FollowService followService;
 
+    @Value("${qiniu.key.access}")
+    private String accessKey;
+
+    @Value("${qiniu.key.secret}")
+    private String secretKey;
+
+    @Value("${qiniu.bucket.header.name}")
+    private String headerBucketName;
+
+    @Value("${qiniu.bucket.header.url}")
+    private String headerBucketUrl;
+
     @LoginRequired
     @GetMapping("/setting")
-    public String getSetting(){
+    public String getSetting(Model model){
+        //上传文件名称
+        String fileName = ForumUtils.generateUUID();
+        //设置相应信息
+        StringMap policy = new StringMap();
+        policy.put("returnBody",ForumUtils.getJSONString(0));
+        //设置上传凭证
+        Auth auth = Auth.create(accessKey,secretKey);
+        String uploadToken = auth.uploadToken(headerBucketName,fileName,3600,policy);
+
+        model.addAttribute("uploadToken",uploadToken);
+        model.addAttribute("fileName",fileName);
+
         return "/site/setting";
     }
 
+    //更新headerUrl
+    @PostMapping(path = "/header/url")
+    @ResponseBody
+    public String updateHeaderUrl(String fileName){
+        if(StringUtils.isBlank(fileName)){
+           ForumUtils.getJSONString(1,"文件名不能为空");
+        }
+        String headerUrl = headerBucketUrl+"/"+fileName;
+        userService.updateHeaderUrl(hostHolder.get().getId(),headerUrl);
+        return ForumUtils.getJSONString(0);
+    }
+
+    //废弃 改为在js异步提交到七牛云
     @LoginRequired
     @PostMapping("/upload")
     public String upload(MultipartFile image, Model model){
@@ -93,6 +129,8 @@ public class UserController implements ForumConstants {
         return "redirect:/index";
     }
 
+
+    //废弃  改为从七牛云获取图片
     /**
      * 响应用户头像图片
      */

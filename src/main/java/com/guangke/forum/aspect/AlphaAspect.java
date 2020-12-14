@@ -10,7 +10,7 @@ public class AlphaAspect {
     /**
      * 定义切点，使用表达式表明哪些bean的哪些方法需要weaving逻辑处理代码
      */
-    //第二个* 这个包的任意类  ；第二个* 任意方法
+    //第一个*返回任意类型 第二个* 这个包的任意类  ；第三个* 任意方法
 
     @Pointcut("execution(* com.guangke.forum.service.*.*(..))")
     public void pointcut(){
